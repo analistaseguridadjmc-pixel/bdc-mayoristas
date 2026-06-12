@@ -224,7 +224,7 @@ async def registrar_venta(payload: RegistrarVentaSchema,
     try:
         r3 = await db.execute(text("""
             SELECT registrar_venta_mayorista(
-                :tid,:cid,:vid,:fac,:monto,:sag,:jdt,:items::jsonb,:obs
+                :tid,:cid,:vid,:fac,:monto,:sag,:jdt,CAST(:items AS jsonb),:obs
             ) AS resultado
         """), {
             "tid":str(usuario["tienda_id"]),"cid":str(cliente_id),
@@ -262,7 +262,7 @@ async def confirmar_llegada(numero_factura: str, payload: LlegadaClienteSchema,
 
     await db.execute(text("""
         INSERT INTO eventos_auditoria(venta_id,usuario_id,sesion_id,vigilante_nombre,vigilante_carnet,evento,detalle)
-        VALUES(:vid,:uid,:sid,:vnom,:vcar,'cliente_llego_a_retirar',:det::jsonb)
+        VALUES(:vid,:uid,:sid,:vnom,:vcar,'cliente_llego_a_retirar',CAST(:det AS jsonb))
     """), {
         "vid":str(venta["venta_id"]),"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
         "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
@@ -346,7 +346,7 @@ async def confirmar_entrega(numero_factura: str, payload: ConfirmarEntregaSchema
 
         await db.execute(text("""
             INSERT INTO eventos_auditoria(venta_id,usuario_id,sesion_id,vigilante_nombre,vigilante_carnet,evento,detalle)
-            VALUES(:vid,:uid,:sid,:vnom,:vcar,'sello_colocado',:det::jsonb)
+            VALUES(:vid,:uid,:sid,:vnom,:vcar,'sello_colocado',CAST(:det AS jsonb))
         """), {
             "vid":str(venta["venta_id"]),"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
             "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
@@ -390,7 +390,7 @@ async def reportar_anomalia(payload: ReporteAnomaliaSchema,
 
     await db.execute(text("""
         INSERT INTO eventos_auditoria(venta_id,usuario_id,sesion_id,vigilante_nombre,vigilante_carnet,evento,detalle)
-        VALUES(:vid,:uid,:sid,:vnom,:vcar,:ev,:det::jsonb)
+        VALUES(:vid,:uid,:sid,:vnom,:vcar,:ev,CAST(:det AS jsonb))
     """), {
         "vid":venta_id,"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
         "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
