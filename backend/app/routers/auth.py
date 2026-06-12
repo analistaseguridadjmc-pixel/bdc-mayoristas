@@ -4,7 +4,7 @@ from sqlalchemy import text
 from pydantic import BaseModel
 import hashlib
 from app.database import get_db
-from app.middleware.security import verificar_password, crear_token_jwt, get_current_user
+from app.middleware.security import crear_token_jwt, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -16,21 +16,22 @@ class LoginSchema(BaseModel):
 @router.post("/login")
 async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     result = await db.execute(text("""
-        SELECT u.id, u.nombre, u.password_hash, u.rol, u.tienda_id, u.activo,
+        SELECT u.id, u.nombre, u.rol, u.tienda_id, u.activo,
                v.empresa_seguridad, v.numero_carnet, v.turno, v.activo AS v_activo,
-               t.codigo AS tienda_codigo, t.nombre AS tienda_nombre
+               t.codigo AS tienda_codigo, t.nombre AS tienda_nombre,
+               (u.password_hash = crypt(:pwd, u.password_hash)) AS pwd_ok
         FROM usuarios u
         JOIN vigilantes v ON v.usuario_id = u.id
         JOIN tiendas t ON t.id = u.tienda_id
         WHERE u.documento = :doc AND u.rol = 'vigilante'
-    """), {"doc": payload.documento.strip()})
+    """), {"doc": payload.documento.strip(), "pwd": payload.password})
     vig = result.mappings().first()
 
     if not vig:
         raise HTTPException(status_code=401, detail={"codigo":"CREDENCIALES_INVALIDAS","mensaje":"Documento no encontrado."})
     if not vig["activo"] or not vig["v_activo"]:
         raise HTTPException(status_code=403, detail={"codigo":"CUENTA_INACTIVA","mensaje":"Cuenta desactivada."})
-    if not verificar_password(payload.password, vig["password_hash"]):
+    if not vig["pwd_ok"]:
         raise HTTPException(status_code=401, detail={"codigo":"CREDENCIALES_INVALIDAS","mensaje":"Contraseña incorrecta."})
     if vig["tienda_codigo"].upper() != payload.tienda_codigo.upper():
         raise HTTPException(status_code=403, detail={"codigo":"TIENDA_NO_AUTORIZADA",
