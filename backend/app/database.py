@@ -4,7 +4,8 @@ from app.config import settings
 
 engine = create_async_engine(
     settings.database_url.replace("postgresql://", "postgresql+asyncpg://"),
-    pool_size=10, max_overflow=20, echo=False
+    pool_size=10, max_overflow=20, echo=False,
+    connect_args={"statement_cache_size": 0}
 )
 
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
