@@ -73,3 +73,39 @@ async def logout(db: AsyncSession = Depends(get_db), usuario=Depends(get_current
     await db.execute(text("SELECT cerrar_sesion_anterior(:vid)"), {"vid": str(usuario["id"])})
     await db.commit()
     return {"ok": True, "mensaje": "Turno cerrado."}
+
+class AdminLoginSchema(BaseModel):
+    documento: str
+    password: str
+
+@router.post("/admin-login")
+async def admin_login(payload: AdminLoginSchema, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("""
+        SELECT u.id, u.nombre, u.rol, u.tienda_id, u.activo,
+               t.codigo AS tienda_codigo, t.nombre AS tienda_nombre,
+               (u.password_hash = crypt(:pwd, u.password_hash)) AS pwd_ok
+        FROM usuarios u
+        JOIN tiendas t ON t.id = u.tienda_id
+        WHERE u.documento = :doc AND u.rol != 'vigilante'
+    """), {"doc": payload.documento.strip(), "pwd": payload.password})
+    user = result.mappings().first()
+
+    if not user:
+        raise HTTPException(status_code=401, detail={"codigo": "CREDENCIALES_INVALIDAS", "mensaje": "Credenciales incorrectas."})
+    if not user["activo"]:
+        raise HTTPException(status_code=403, detail={"codigo": "CUENTA_INACTIVA", "mensaje": "Cuenta desactivada."})
+    if not user["pwd_ok"]:
+        raise HTTPException(status_code=401, detail={"codigo": "CREDENCIALES_INVALIDAS", "mensaje": "Contraseña incorrecta."})
+
+    token = crear_token_jwt({
+        "sub": str(user["id"]), "rol": user["rol"],
+        "tienda_id": str(user["tienda_id"]), "nombre": user["nombre"]
+    })
+    return {
+        "token": token,
+        "usuario": {
+            "id": str(user["id"]), "nombre": user["nombre"],
+            "rol": user["rol"], "documento": payload.documento
+        },
+        "tienda": {"codigo": user["tienda_codigo"], "nombre": user["tienda_nombre"]}
+    }

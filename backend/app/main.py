@@ -4,7 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import text
 from app.config import settings
 from app.database import AsyncSessionLocal
-from app.routers import auth, vigilante
+from app.routers import auth, vigilante, admin
 
 app = FastAPI(title="BDC Mayoristas API", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(CORSMiddleware,
 # Routers
 app.include_router(auth.router)
 app.include_router(vigilante.router)
+app.include_router(admin.router)
 
 # Cron: marcar ventas vencidas cada hora
 scheduler = AsyncIOScheduler()

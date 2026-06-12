@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../services/api'
 import { useStore } from '../store/useStore'
+import AdminLogin from './admin/AdminLogin'
 
 const TIENDAS = [
   { value: 'BDC-001', label: 'BDC-001 · Bogotá Américas' },
@@ -13,6 +14,9 @@ export default function Login() {
   const [form, setForm] = useState({ documento: '', password: '', tienda_codigo: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [modoAdmin, setModoAdmin] = useState(false)
+
+  if (modoAdmin) return <AdminLogin onBack={() => setModoAdmin(false)} />
 
   const handleLogin = async () => {
     if (!form.documento || !form.password || !form.tienda_codigo) {
@@ -118,6 +122,10 @@ export default function Login() {
         <p className="text-center text-xs text-gray-400 mt-6">
           Contraseña de prueba: <span className="font-mono">bdc2024</span>
         </p>
+        <button onClick={() => setModoAdmin(true)}
+          className="w-full text-center text-xs text-gray-400 mt-3 py-2 hover:text-bdc-brown transition-colors">
+          Acceso administrativo →
+        </button>
       </div>
     </div>
   )

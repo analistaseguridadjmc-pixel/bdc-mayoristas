@@ -19,11 +19,18 @@ export const useStore = create(
       // Estado local de formularios (se resetean al cerrar)
       llegadaData: null,
 
+      // Admin
+      adminUsuario: null,
+      adminPagina: 'dashboard',
+
       // Acciones Auth
       setAuth: (token, sesion, vigilante, tienda) =>
         set({ token, sesion, vigilante, tienda, pantalla: 'app', tabActiva: 'pendientes' }),
+      setAdminAuth: (token, usuario, tienda) =>
+        set({ token, adminUsuario: usuario, tienda, pantalla: 'admin' }),
       clearAuth: () =>
-        set({ token: null, sesion: null, vigilante: null, tienda: null, pantalla: 'login' }),
+        set({ token: null, sesion: null, vigilante: null, tienda: null, adminUsuario: null, pantalla: 'login' }),
+      setAdminPagina: (pagina) => set({ adminPagina: pagina }),
 
       // Navegación
       setTab: (tab) => set({ tabActiva: tab, ventaSeleccionada: null, subPantalla: null }),
