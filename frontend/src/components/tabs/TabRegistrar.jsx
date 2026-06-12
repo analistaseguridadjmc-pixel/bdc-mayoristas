@@ -115,6 +115,10 @@ export default function TabRegistrar() {
           className="w-full bg-bdc-brown text-white rounded-xl py-3.5 text-sm font-semibold">
           Registrar otra venta
         </button>
+        <button onClick={() => useStore.getState().setTab('pendientes')}
+          className="w-full bg-white border border-gray-200 text-gray-700 rounded-xl py-3.5 text-sm font-semibold mt-3">
+          Ver ventas pendientes
+        </button>
       </div>
     )
   }
