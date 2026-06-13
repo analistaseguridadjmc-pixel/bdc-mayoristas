@@ -22,6 +22,7 @@ export default function Usuarios() {
   const [form, setForm] = useState({ nombre:'', documento:'', password:'', rol:'vigilante', tienda_codigo:'', empresa_seguridad:'', numero_carnet:'', turno:'diurno' })
   const [guardando, setGuardando] = useState(false)
   const [errorModal, setErrorModal] = useState('')
+  const [confirmandoId, setConfirmandoId] = useState(null)
 
   const cargar = async () => {
     setLoading(true)
@@ -35,6 +36,7 @@ export default function Usuarios() {
 
   const toggleEstado = async (id) => {
     await api.adminToggleUsuario(id, token)
+    setConfirmandoId(null)
     cargar()
   }
 
@@ -127,14 +129,29 @@ export default function Usuarios() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => toggleEstado(u.id)}
-                        className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-                          u.activo
-                            ? 'border-red-200 text-red-600 hover:bg-red-50'
-                            : 'border-green-200 text-green-600 hover:bg-green-50'
-                        }`}>
-                        {u.activo ? 'Desactivar' : 'Activar'}
-                      </button>
+                      {confirmandoId === u.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-red-600 font-medium">¿Confirmar?</span>
+                          <button onClick={() => toggleEstado(u.id)}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">
+                            Sí
+                          </button>
+                          <button onClick={() => setConfirmandoId(null)}
+                            className="text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => u.activo ? setConfirmandoId(u.id) : toggleEstado(u.id)}
+                          className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                            u.activo
+                              ? 'border-red-200 text-red-600 hover:bg-red-50'
+                              : 'border-green-200 text-green-600 hover:bg-green-50'
+                          }`}>
+                          {u.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
