@@ -192,8 +192,7 @@ async def toggle_usuario(usuario_id: str,
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     nuevo = not row[0]
     await db.execute(text("UPDATE usuarios SET activo=:act WHERE id=:id"), {"act": nuevo, "id": usuario_id})
-    if not nuevo:
-        await db.execute(text("UPDATE vigilantes SET activo=:act WHERE usuario_id=:id"), {"act": nuevo, "id": usuario_id})
+    await db.execute(text("UPDATE vigilantes SET activo=:act WHERE usuario_id=:id"), {"act": nuevo, "id": usuario_id})
     await db.commit()
     return {"ok": True, "activo": nuevo}
 
