@@ -5,6 +5,7 @@ from sqlalchemy import text
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
+import hashlib
 from app.config import settings
 from app.database import get_db
 
@@ -41,6 +42,15 @@ async def get_current_user(
     user = result.mappings().first()
     if not user or not user["activo"]:
         raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+
+    if user["rol"] == "vigilante":
+        token_hash = hashlib.sha256(credentials.credentials.encode()).hexdigest()
+        sesion = await db.execute(
+            text("SELECT id FROM sesiones_turno WHERE vigilante_id = :uid AND token_hash = :th AND fin_turno IS NULL"),
+            {"uid": user_id, "th": token_hash}
+        )
+        if not sesion.first():
+            raise HTTPException(status_code=401, detail="Sesión cerrada. Inicia turno nuevamente.")
 
     return user
 
