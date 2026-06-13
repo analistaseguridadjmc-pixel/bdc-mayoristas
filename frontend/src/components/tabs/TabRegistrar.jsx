@@ -12,7 +12,7 @@ export default function TabRegistrar() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
   const [busqCliente, setBusqCliente] = useState('')
   const [sugerenciasClientes, setSugerenciasClientes] = useState([])
-  const [clienteNuevo, setClienteNuevo] = useState({ razon_social: '', nit: '', nombre_rep: '', telefono: '' })
+  const [clienteNuevo, setClienteNuevo] = useState({ razon_social: '' })
   const [items, setItems] = useState([{ referencia: '', descripcion: '', unidad: 'UND', cantidad: '' }])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,7 +49,7 @@ export default function TabRegistrar() {
     if (!form.numero_factura.trim() || !form.jdt_nombre.trim() || !monto) return false
     if (requiereSagrilaft && !form.sagrilaft_diligenciado) return false
     if (modoCliente === 'existente' && !clienteSeleccionado) return false
-    if (modoCliente === 'nuevo' && (!clienteNuevo.razon_social || !clienteNuevo.nit)) return false
+    if (modoCliente === 'nuevo' && !clienteNuevo.razon_social.trim()) return false
     if (!items.every(i => i.referencia.trim() && parseInt(i.cantidad) > 0)) return false
     return true
   }
@@ -90,7 +90,7 @@ export default function TabRegistrar() {
     setExito(false)
     setForm({ numero_factura: '', jdt_nombre: '', monto_total: '', sagrilaft_diligenciado: false, observaciones: '' })
     setClienteSeleccionado(null)
-    setClienteNuevo({ razon_social: '', nit: '', nombre_rep: '', telefono: '' })
+    setClienteNuevo({ razon_social: '' })
     setItems([{ referencia: '', descripcion: '', unidad: 'UND', cantidad: '' }])
     setError('')
   }
@@ -176,7 +176,9 @@ export default function TabRegistrar() {
               <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex justify-between items-center">
                 <div>
                   <div className="text-sm font-semibold text-gray-900">{clienteSeleccionado.razon_social}</div>
-                  <div className="text-xs text-gray-500">NIT {clienteSeleccionado.nit}</div>
+                  {!clienteSeleccionado.nit?.startsWith('SIN-') && (
+                    <div className="text-xs text-gray-500">NIT {clienteSeleccionado.nit}</div>
+                  )}
                 </div>
                 <button onClick={() => setClienteSeleccionado(null)}
                   className="text-bdc-brown text-xs font-medium">Cambiar</button>
@@ -196,7 +198,9 @@ export default function TabRegistrar() {
                       <div key={c.id} onClick={() => seleccionarCliente(c)}
                         className="px-4 py-3 border-b border-gray-100 last:border-0 cursor-pointer active:bg-gray-50">
                         <div className="text-sm font-medium text-gray-900">{c.razon_social}</div>
-                        <div className="text-xs text-gray-500">NIT {c.nit} · {c.total_compras} compra(s)</div>
+                        <div className="text-xs text-gray-500">
+                          {!c.nit?.startsWith('SIN-') && `NIT ${c.nit} · `}{c.total_compras} compra(s)
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -204,22 +208,13 @@ export default function TabRegistrar() {
               </div>
             )
           ) : (
-            <div className="space-y-2">
-              {[
-                { key:'razon_social', placeholder:'Razón social *', required:true },
-                { key:'nit', placeholder:'NIT *', required:true },
-                { key:'nombre_rep', placeholder:'Representante (opcional)' },
-                { key:'telefono', placeholder:'Teléfono (opcional)' }
-              ].map(f => (
-                <input key={f.key}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm
-                             text-gray-900 outline-none focus:border-bdc-brown"
-                  placeholder={f.placeholder}
-                  value={clienteNuevo[f.key]}
-                  onChange={e => setClienteNuevo(p => ({ ...p, [f.key]: e.target.value }))}
-                />
-              ))}
-            </div>
+            <input
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm
+                         text-gray-900 outline-none focus:border-bdc-brown"
+              placeholder="Nombre del cliente *"
+              value={clienteNuevo.razon_social}
+              onChange={e => setClienteNuevo({ razon_social: e.target.value })}
+            />
           )}
         </div>
 

@@ -118,9 +118,6 @@ export default function Login() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Contraseña de prueba: <span className="font-mono">bdc2024</span>
-        </p>
         <button onClick={() => setModoAdmin(true)}
           className="w-full text-center text-xs text-gray-400 mt-3 py-2 hover:text-bdc-brown transition-colors">
           Acceso administrativo →

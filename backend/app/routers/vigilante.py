@@ -193,20 +193,15 @@ async def registrar_venta(payload: RegistrarVentaSchema,
         cliente_id = payload.cliente_id
     elif payload.cliente_nuevo:
         datos = payload.cliente_nuevo
-        if not datos.get("razon_social") or not datos.get("nit"):
-            raise HTTPException(status_code=422, detail="Se requieren razón social y NIT.")
-        dup = await db.execute(text("SELECT id FROM clientes_mayoristas WHERE nit=:nit"),
-                               {"nit": datos["nit"]})
-        ex = dup.first()
-        if ex:
-            raise HTTPException(status_code=409, detail={
-                "codigo":"NIT_DUPLICADO","cliente_id":str(ex[0]),
-                "mensaje":f"Cliente con NIT {datos['nit']} ya existe."})
+        nombre = (datos.get("razon_social") or "").strip()
+        if not nombre:
+            raise HTTPException(status_code=422, detail="Se requiere el nombre del cliente.")
+        import uuid as _uuid
+        nit_auto = f"SIN-{str(_uuid.uuid4())[:8].upper()}"
         r2 = await db.execute(text("""
-            INSERT INTO clientes_mayoristas(razon_social,nit,nombre_rep,telefono)
-            VALUES(:rs,:nit,:rep,:tel) RETURNING id
-        """), {"rs":datos["razon_social"],"nit":datos["nit"],
-               "rep":datos.get("nombre_rep"),"tel":datos.get("telefono")})
+            INSERT INTO clientes_mayoristas(razon_social, nit)
+            VALUES(:rs, :nit) RETURNING id
+        """), {"rs": nombre, "nit": nit_auto})
         cliente_id = r2.scalar()
     else:
         raise HTTPException(status_code=422, detail="Proporcione cliente_id o cliente_nuevo.")
