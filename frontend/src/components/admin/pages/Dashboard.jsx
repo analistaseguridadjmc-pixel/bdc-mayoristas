@@ -24,6 +24,8 @@ function KpiCard({ label, value, color, icon, sub }) {
   )
 }
 
+const INTERVALO_MS = 5 * 60 * 1000
+
 export default function Dashboard() {
   const token = useStore(s => s.token)
   const [data, setData] = useState(null)
@@ -31,6 +33,8 @@ export default function Dashboard() {
   const [tiendaFiltro, setTiendaFiltro] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null)
+  const [hace, setHace] = useState('')
 
   const cargar = async (tc) => {
     setLoading(true)
@@ -41,12 +45,30 @@ export default function Dashboard() {
       ])
       setData(d)
       if (ts) setTiendas(ts)
+      setUltimaActualizacion(new Date())
+      setError('')
     } catch (e) {
       setError('Error al cargar el dashboard.')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { cargar('') }, [])
+  useEffect(() => {
+    cargar('')
+    const intervalo = setInterval(() => {
+      setTiendaFiltro(prev => { cargar(prev); return prev })
+    }, INTERVALO_MS)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  useEffect(() => {
+    if (!ultimaActualizacion) return
+    const tick = setInterval(() => {
+      const min = Math.floor((Date.now() - ultimaActualizacion) / 60000)
+      setHace(min === 0 ? 'ahora mismo' : `hace ${min} min`)
+    }, 30000)
+    setHace('ahora mismo')
+    return () => clearInterval(tick)
+  }, [ultimaActualizacion])
 
   const handleFiltro = (codigo) => {
     setTiendaFiltro(codigo)
@@ -85,13 +107,16 @@ export default function Dashboard() {
               <option key={t.codigo} value={t.codigo}>{t.codigo} · {t.nombre}</option>
             ))}
           </select>
-          <button onClick={() => cargar(tiendaFiltro)}
-            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            Actualizar
-          </button>
+          <div className="flex items-center gap-3">
+            {hace && <span className="text-xs text-gray-400 hidden sm:block">Actualizado {hace}</span>}
+            <button onClick={() => cargar(tiendaFiltro)}
+              className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Actualizar
+            </button>
+          </div>
         </div>
       </div>
 
