@@ -1,13 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../services/api'
 import { useStore } from '../store/useStore'
 import AdminLogin from './admin/AdminLogin'
-
-const TIENDAS = [
-  { value: 'BDC-001', label: 'BDC-001 · Bogotá Américas' },
-  { value: 'BDC-002', label: 'BDC-002 · Bogotá Kennedy' },
-  { value: 'BDC-003', label: 'BDC-003 · Medellín Itagüí' },
-]
 
 export default function Login() {
   const setAuth = useStore(s => s.setAuth)
@@ -15,6 +9,11 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [modoAdmin, setModoAdmin] = useState(false)
+  const [tiendas, setTiendas] = useState([])
+
+  useEffect(() => {
+    api.tiendas().then(setTiendas).catch(() => {})
+  }, [])
 
   if (modoAdmin) return <AdminLogin onBack={() => setModoAdmin(false)} />
 
@@ -89,7 +88,7 @@ export default function Login() {
               onChange={e => setForm(p => ({ ...p, tienda_codigo: e.target.value }))}
             >
               <option value="">Seleccionar tienda...</option>
-              {TIENDAS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {tiendas.map(t => <option key={t.codigo} value={t.codigo}>{t.codigo} · {t.nombre}</option>)}
             </select>
           </div>
 

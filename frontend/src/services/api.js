@@ -13,6 +13,7 @@ async function req(method, path, body, token) {
 
 export const api = {
   // Auth
+  tiendas: () => req('GET', '/auth/tiendas'),
   login: (payload) => req('POST', '/auth/login', payload),
   adminLogin: (payload) => req('POST', '/auth/admin-login', payload),
   logout: (token) => req('POST', '/auth/logout', null, token),

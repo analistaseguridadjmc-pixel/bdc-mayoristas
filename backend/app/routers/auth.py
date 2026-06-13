@@ -74,6 +74,13 @@ async def logout(db: AsyncSession = Depends(get_db), usuario=Depends(get_current
     await db.commit()
     return {"ok": True, "mensaje": "Turno cerrado."}
 
+@router.get("/tiendas")
+async def tiendas_publicas(db: AsyncSession = Depends(get_db)):
+    r = await db.execute(text(
+        "SELECT codigo, nombre, ciudad FROM tiendas WHERE activa = TRUE ORDER BY codigo"
+    ))
+    return [dict(row) for row in r.mappings().all()]
+
 class AdminLoginSchema(BaseModel):
     documento: str
     password: str
