@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from pydantic import BaseModel
 import hashlib
 from app.database import get_db
 from app.middleware.security import crear_token_jwt, get_current_user
+from app.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -14,7 +15,8 @@ class LoginSchema(BaseModel):
     tienda_codigo: str
 
 @router.post("/login")
-async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     result = await db.execute(text("""
         SELECT u.id, u.nombre, u.rol, u.tienda_id, u.activo,
                v.empresa_seguridad, v.numero_carnet, v.turno, v.activo AS v_activo,
@@ -84,7 +86,8 @@ class AdminLoginSchema(BaseModel):
     password: str
 
 @router.post("/admin-login")
-async def admin_login(payload: AdminLoginSchema, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def admin_login(request: Request, payload: AdminLoginSchema, db: AsyncSession = Depends(get_db)):
     result = await db.execute(text("""
         SELECT u.id, u.nombre, u.rol, u.tienda_id, u.activo,
                t.codigo AS tienda_codigo, t.nombre AS tienda_nombre,
