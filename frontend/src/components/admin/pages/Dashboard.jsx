@@ -24,32 +24,34 @@ function KpiCard({ label, value, color, icon, sub }) {
   )
 }
 
-const ESTADO_BADGE = {
-  facturada:       'bg-blue-100 text-blue-700',
-  en_separacion:   'bg-purple-100 text-purple-700',
-  entrega_parcial: 'bg-orange-100 text-orange-700',
-  entregada:       'bg-green-100 text-green-700',
-  vencida:         'bg-red-100 text-red-700',
-  registrada:      'bg-gray-100 text-gray-600',
-}
-
 export default function Dashboard() {
   const token = useStore(s => s.token)
   const [data, setData] = useState(null)
+  const [tiendas, setTiendas] = useState([])
+  const [tiendaFiltro, setTiendaFiltro] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const cargar = async () => {
+  const cargar = async (tc) => {
     setLoading(true)
     try {
-      const d = await api.adminDashboard(token)
+      const [d, ts] = await Promise.all([
+        api.adminDashboard(token, tc || undefined),
+        tiendas.length === 0 ? api.adminTiendas(token) : Promise.resolve(null)
+      ])
       setData(d)
+      if (ts) setTiendas(ts)
     } catch (e) {
       setError('Error al cargar el dashboard.')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => { cargar('') }, [])
+
+  const handleFiltro = (codigo) => {
+    setTiendaFiltro(codigo)
+    cargar(codigo)
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -67,19 +69,42 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Resumen operacional en tiempo real</p>
         </div>
-        <button onClick={cargar}
-          className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          Actualizar
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Filtro de tienda */}
+          <select
+            value={tiendaFiltro}
+            onChange={e => handleFiltro(e.target.value)}
+            className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium outline-none focus:border-bdc-brown">
+            <option value="">Todas las tiendas</option>
+            {tiendas.map(t => (
+              <option key={t.codigo} value={t.codigo}>{t.codigo} · {t.nombre}</option>
+            ))}
+          </select>
+          <button onClick={() => cargar(tiendaFiltro)}
+            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Actualizar
+          </button>
+        </div>
       </div>
+
+      {tiendaFiltro && (
+        <div className="bg-bdc-brown/10 border border-bdc-brown/20 rounded-xl px-4 py-2.5 flex items-center justify-between">
+          <span className="text-sm font-medium text-bdc-brown">
+            Filtrando: {tiendas.find(t => t.codigo === tiendaFiltro)?.nombre || tiendaFiltro}
+          </span>
+          <button onClick={() => handleFiltro('')} className="text-xs text-bdc-brown underline hover:no-underline">
+            Ver todas
+          </button>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
@@ -109,7 +134,9 @@ export default function Dashboard() {
             <h2 className="font-semibold text-gray-900">Estado por tienda</h2>
           </div>
           <div className="divide-y divide-gray-50">
-            {por_tienda.map(t => (
+            {por_tienda.length === 0 ? (
+              <div className="px-6 py-8 text-center text-sm text-gray-400">Sin datos para esta tienda</div>
+            ) : por_tienda.map(t => (
               <div key={t.codigo} className="px-6 py-4 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-gray-900">{t.tienda}</div>

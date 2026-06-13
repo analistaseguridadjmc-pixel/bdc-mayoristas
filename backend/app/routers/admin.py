@@ -16,27 +16,41 @@ ROLES_ADMIN = ["jdt", "sdt", "jvo", "auditor"]
 
 # ── DASHBOARD ─────────────────────────────────────────────────
 @router.get("/dashboard")
-async def dashboard(db: AsyncSession = Depends(get_db),
+async def dashboard(tienda_codigo: Optional[str] = Query(None),
+                    db: AsyncSession = Depends(get_db),
                     usuario=Depends(require_role(ROLES_ADMIN))):
+    tc = tienda_codigo or None
+    p = {"tc": tc}
+
     r1 = await db.execute(text("""
         SELECT
-            COUNT(*) FILTER (WHERE estado NOT IN ('entregada','vencida')) AS activas,
-            COUNT(*) FILTER (WHERE estado = 'vencida') AS vencidas,
-            COUNT(*) FILTER (WHERE estado = 'entregada') AS entregadas
-        FROM ventas_mayoristas
-    """))
+            COUNT(*) FILTER (WHERE vm.estado NOT IN ('entregada','vencida')) AS activas,
+            COUNT(*) FILTER (WHERE vm.estado = 'vencida') AS vencidas,
+            COUNT(*) FILTER (WHERE vm.estado = 'entregada') AS entregadas
+        FROM ventas_mayoristas vm
+        JOIN tiendas t ON t.id = vm.tienda_id
+        WHERE (:tc IS NULL OR t.codigo = :tc)
+    """), p)
     totales = dict(r1.mappings().first())
 
     r2 = await db.execute(text("""
-        SELECT COUNT(*) FROM retiros WHERE DATE(fecha_retiro AT TIME ZONE 'America/Bogota') = CURRENT_DATE
-    """))
+        SELECT COUNT(*) FROM retiros ret
+        JOIN formatos_gvm001 f ON f.id = ret.formato_id
+        JOIN ventas_mayoristas vm ON vm.id = f.venta_id
+        JOIN tiendas t ON t.id = vm.tienda_id
+        WHERE DATE(ret.fecha_retiro AT TIME ZONE 'America/Bogota') = CURRENT_DATE
+          AND (:tc IS NULL OR t.codigo = :tc)
+    """), p)
     retiros_hoy = r2.scalar() or 0
 
     r3 = await db.execute(text("""
-        SELECT COUNT(*) FROM eventos_auditoria
-        WHERE evento LIKE 'ANOMALIA%'
-          AND DATE(created_at AT TIME ZONE 'America/Bogota') = CURRENT_DATE
-    """))
+        SELECT COUNT(*) FROM eventos_auditoria ea
+        JOIN usuarios u ON u.id = ea.usuario_id
+        JOIN tiendas t ON t.id = u.tienda_id
+        WHERE ea.evento LIKE 'ANOMALIA%'
+          AND DATE(ea.created_at AT TIME ZONE 'America/Bogota') = CURRENT_DATE
+          AND (:tc IS NULL OR t.codigo = :tc)
+    """), p)
     anomalias_hoy = r3.scalar() or 0
 
     r4 = await db.execute(text("""
@@ -46,9 +60,9 @@ async def dashboard(db: AsyncSession = Depends(get_db),
             COUNT(vm.id) FILTER (WHERE vm.estado = 'entregada') AS entregadas
         FROM tiendas t
         LEFT JOIN ventas_mayoristas vm ON vm.tienda_id = t.id
-        WHERE t.activa = TRUE
+        WHERE t.activa = TRUE AND (:tc IS NULL OR t.codigo = :tc)
         GROUP BY t.id, t.nombre, t.codigo ORDER BY t.codigo
-    """))
+    """), p)
     por_tienda = [dict(r) for r in r4.mappings().all()]
 
     r5 = await db.execute(text("""
@@ -63,9 +77,10 @@ async def dashboard(db: AsyncSession = Depends(get_db),
         LEFT JOIN retiros ret ON ret.formato_id = f.id
         WHERE vm.estado NOT IN ('entregada','vencida') AND f.fecha_limite > NOW()
           AND EXTRACT(EPOCH FROM (f.fecha_limite - NOW()))/3600 < 12
+          AND (:tc IS NULL OR t.codigo = :tc)
         GROUP BY vm.id, vm.numero_factura, f.fecha_limite, t.nombre, c.razon_social
         ORDER BY horas_restantes ASC LIMIT 10
-    """))
+    """), p)
     proximas_vencer = [dict(r) for r in r5.mappings().all()]
 
     r6 = await db.execute(text("""
@@ -75,8 +90,9 @@ async def dashboard(db: AsyncSession = Depends(get_db),
         JOIN usuarios u ON u.id = ea.usuario_id
         JOIN tiendas t ON t.id = u.tienda_id
         WHERE ea.evento LIKE 'ANOMALIA%'
+          AND (:tc IS NULL OR t.codigo = :tc)
         ORDER BY ea.created_at DESC LIMIT 15
-    """))
+    """), p)
     anomalias = []
     for row in r6.mappings().all():
         d = dict(row)

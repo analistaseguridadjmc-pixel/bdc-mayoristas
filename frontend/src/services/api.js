@@ -18,7 +18,7 @@ export const api = {
   logout: (token) => req('POST', '/auth/logout', null, token),
 
   // Admin
-  adminDashboard: (token) => req('GET', '/admin/dashboard', null, token),
+  adminDashboard: (token, tiendaCodigo) => req('GET', `/admin/dashboard${tiendaCodigo ? `?tienda_codigo=${tiendaCodigo}` : ''}`, null, token),
   adminUsuarios: (token) => req('GET', '/admin/usuarios', null, token),
   adminTiendas: (token) => req('GET', '/admin/tiendas', null, token),
   adminCrearUsuario: (payload, token) => req('POST', '/admin/usuarios', payload, token),
