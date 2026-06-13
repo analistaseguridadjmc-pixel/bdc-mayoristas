@@ -27,12 +27,10 @@ async def login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
     """), {"doc": payload.documento.strip(), "pwd": payload.password})
     vig = result.mappings().first()
 
-    if not vig:
-        raise HTTPException(status_code=401, detail={"codigo":"CREDENCIALES_INVALIDAS","mensaje":"Documento no encontrado."})
+    if not vig or not vig["pwd_ok"]:
+        raise HTTPException(status_code=401, detail={"codigo":"CREDENCIALES_INVALIDAS","mensaje":"Documento o contraseña incorrectos."})
     if not vig["activo"] or not vig["v_activo"]:
-        raise HTTPException(status_code=403, detail={"codigo":"CUENTA_INACTIVA","mensaje":"Cuenta desactivada."})
-    if not vig["pwd_ok"]:
-        raise HTTPException(status_code=401, detail={"codigo":"CREDENCIALES_INVALIDAS","mensaje":"Contraseña incorrecta."})
+        raise HTTPException(status_code=403, detail={"codigo":"CUENTA_INACTIVA","mensaje":"Cuenta desactivada. Contacta a tu supervisor."})
     if vig["tienda_codigo"].upper() != payload.tienda_codigo.upper():
         raise HTTPException(status_code=403, detail={"codigo":"TIENDA_NO_AUTORIZADA",
             "mensaje":"Este vigilante pertenece a otra tienda.","tienda":vig["tienda_nombre"]})
@@ -97,12 +95,10 @@ async def admin_login(payload: AdminLoginSchema, db: AsyncSession = Depends(get_
     """), {"doc": payload.documento.strip(), "pwd": payload.password})
     user = result.mappings().first()
 
-    if not user:
-        raise HTTPException(status_code=401, detail={"codigo": "CREDENCIALES_INVALIDAS", "mensaje": "Credenciales incorrectas."})
+    if not user or not user["pwd_ok"]:
+        raise HTTPException(status_code=401, detail={"codigo": "CREDENCIALES_INVALIDAS", "mensaje": "Documento o contraseña incorrectos."})
     if not user["activo"]:
-        raise HTTPException(status_code=403, detail={"codigo": "CUENTA_INACTIVA", "mensaje": "Cuenta desactivada."})
-    if not user["pwd_ok"]:
-        raise HTTPException(status_code=401, detail={"codigo": "CREDENCIALES_INVALIDAS", "mensaje": "Contraseña incorrecta."})
+        raise HTTPException(status_code=403, detail={"codigo": "CUENTA_INACTIVA", "mensaje": "Cuenta desactivada. Contacta al administrador."})
 
     token = crear_token_jwt({
         "sub": str(user["id"]), "rol": user["rol"],
