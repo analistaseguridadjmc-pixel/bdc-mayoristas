@@ -56,7 +56,8 @@ export default function Login() {
               Número de cédula
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-900 outline-none focus:border-bdc-brown transition-colors"
               placeholder="Ej: 1020456789"
               value={form.documento}
