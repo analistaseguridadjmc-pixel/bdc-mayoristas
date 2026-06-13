@@ -29,7 +29,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
             COUNT(*) FILTER (WHERE vm.estado = 'entregada') AS entregadas
         FROM ventas_mayoristas vm
         JOIN tiendas t ON t.id = vm.tienda_id
-        WHERE (:tc IS NULL OR t.codigo = :tc)
+        WHERE (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
     """), p)
     totales = dict(r1.mappings().first())
 
@@ -39,7 +39,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
         JOIN ventas_mayoristas vm ON vm.id = f.venta_id
         JOIN tiendas t ON t.id = vm.tienda_id
         WHERE DATE(ret.fecha_retiro AT TIME ZONE 'America/Bogota') = CURRENT_DATE
-          AND (:tc IS NULL OR t.codigo = :tc)
+          AND (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
     """), p)
     retiros_hoy = r2.scalar() or 0
 
@@ -49,7 +49,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
         JOIN tiendas t ON t.id = u.tienda_id
         WHERE ea.evento LIKE 'ANOMALIA%'
           AND DATE(ea.created_at AT TIME ZONE 'America/Bogota') = CURRENT_DATE
-          AND (:tc IS NULL OR t.codigo = :tc)
+          AND (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
     """), p)
     anomalias_hoy = r3.scalar() or 0
 
@@ -60,7 +60,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
             COUNT(vm.id) FILTER (WHERE vm.estado = 'entregada') AS entregadas
         FROM tiendas t
         LEFT JOIN ventas_mayoristas vm ON vm.tienda_id = t.id
-        WHERE t.activa = TRUE AND (:tc IS NULL OR t.codigo = :tc)
+        WHERE t.activa = TRUE AND (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
         GROUP BY t.id, t.nombre, t.codigo ORDER BY t.codigo
     """), p)
     por_tienda = [dict(r) for r in r4.mappings().all()]
@@ -77,7 +77,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
         LEFT JOIN retiros ret ON ret.formato_id = f.id
         WHERE vm.estado NOT IN ('entregada','vencida') AND f.fecha_limite > NOW()
           AND EXTRACT(EPOCH FROM (f.fecha_limite - NOW()))/3600 < 12
-          AND (:tc IS NULL OR t.codigo = :tc)
+          AND (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
         GROUP BY vm.id, vm.numero_factura, f.fecha_limite, t.nombre, c.razon_social
         ORDER BY horas_restantes ASC LIMIT 10
     """), p)
@@ -90,7 +90,7 @@ async def dashboard(tienda_codigo: Optional[str] = Query(None),
         JOIN usuarios u ON u.id = ea.usuario_id
         JOIN tiendas t ON t.id = u.tienda_id
         WHERE ea.evento LIKE 'ANOMALIA%'
-          AND (:tc IS NULL OR t.codigo = :tc)
+          AND (CAST(:tc AS TEXT) IS NULL OR t.codigo = CAST(:tc AS TEXT))
         ORDER BY ea.created_at DESC LIMIT 15
     """), p)
     anomalias = []
