@@ -6,6 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 from datetime import datetime, timezone
 from typing import Optional
+import json
 from app.database import get_db
 from app.middleware.security import require_role, get_current_user
 
@@ -211,10 +212,10 @@ async def registrar_venta(payload: RegistrarVentaSchema,
             "codigo":"SAGRILAFT_REQUERIDO",
             "mensaje":"Compras >= $40.000.000 requieren formato SAGRILAFT."})
 
-    items_json = str([{
+    items_json = json.dumps([{
         "referencia":i.referencia,"descripcion":i.descripcion,
         "unidad":i.unidad,"cantidad":i.cantidad,"precio":str(i.precio)
-    } for i in payload.items]).replace("'",'"')
+    } for i in payload.items])
 
     try:
         r3 = await db.execute(text("""
@@ -261,9 +262,9 @@ async def confirmar_llegada(numero_factura: str, payload: LlegadaClienteSchema,
     """), {
         "vid":str(venta["venta_id"]),"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
         "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
-        "det":str({"numero_factura":numero_factura,"retiro":int(venta["retiros_usados"] or 0)+1,
-                   "retira_comprador":payload.retira_el_comprador,
-                   "nombre_autorizado":payload.nombre_autorizado}).replace("'",'"')
+        "det":json.dumps({"numero_factura":numero_factura,"retiro":int(venta["retiros_usados"] or 0)+1,
+                          "retira_comprador":payload.retira_el_comprador,
+                          "nombre_autorizado":payload.nombre_autorizado})
     })
     await db.commit()
 
@@ -345,8 +346,8 @@ async def confirmar_entrega(numero_factura: str, payload: ConfirmarEntregaSchema
         """), {
             "vid":str(venta["venta_id"]),"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
             "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
-            "det":str({"factura":numero_factura,"retiro":int(venta["retiros_usados"] or 0)+1,
-                       "completa":pendientes_count==0}).replace("'",'"')
+            "det":json.dumps({"factura":numero_factura,"retiro":int(venta["retiros_usados"] or 0)+1,
+                              "completa":pendientes_count==0})
         })
         await db.commit()
 
@@ -390,8 +391,8 @@ async def reportar_anomalia(payload: ReporteAnomaliaSchema,
         "vid":venta_id,"uid":str(usuario["id"]),"sid":str(sesion["sesion_id"]),
         "vnom":sesion["nombre"],"vcar":sesion["numero_carnet"],
         "ev":f"ANOMALIA_{payload.tipo.upper()}",
-        "det":str({"tipo":payload.tipo,"descripcion":payload.descripcion,
-                   "factura":payload.numero_factura}).replace("'",'"')
+        "det":json.dumps({"tipo":payload.tipo,"descripcion":payload.descripcion,
+                          "factura":payload.numero_factura})
     })
     await db.commit()
     return {"ok":True,"mensaje":"Anomalía reportada y registrada en auditoría."}
