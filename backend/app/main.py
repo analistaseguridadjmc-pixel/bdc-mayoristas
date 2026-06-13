@@ -39,6 +39,6 @@ async def startup():
 async def shutdown():
     scheduler.shutdown()
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "service": "bdc-mayoristas-api"}
